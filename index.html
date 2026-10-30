@@ -259,7 +259,7 @@
       [81,"Tl","Thallium",204.38,6,13,"post-trans",1.62,156,589,[2,8,18,32,18,3],"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p¹"],
       [82,"Pb","Lead",207.2,6,14,"post-trans",2.33,154,716,[2,8,18,32,18,4],"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p²"],
       [83,"Bi","Bismuth",208.98,6,15,"post-trans",2.02,143,703,[2,8,18,32,18,5],"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p³"],
-      [84,"Po","Polonium",209,6,16,"post-trans",2,135,812,[2,8,18,32,18,6],"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁴"],
+      [84,"Po","Polonium",209,6,16,"post-trans",2,135,812,[2,8,18,32,18,6],"[Xe] 4f¹⁴ 5d¹0 6s² 6p⁴"],
       [85,"At","Astatine",210,6,17,"halogen",2.2,127,920,[2,8,18,32,18,7],"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁵"],
       [86,"Rn","Radon",222,6,18,"noble",2.2,120,1037,[2,8,18,32,18,8],"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁶"],
       [87,"Fr","Francium",223,7,1,"alkali",0.7,null,380,[2,8,18,32,18,8,1],"[Rn] 7s¹"],
@@ -291,7 +291,7 @@
       [113,"Nh","Nihonium",286,7,13,"post-trans",null,null,null,[2,8,18,32,32,18,3],"[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p¹"],
       [114,"Fl","Flerovium",289,7,14,"post-trans",null,null,null,[2,8,18,32,32,18,4],"[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p²"],
       [115,"Mc","Moscovium",290,7,15,"post-trans",null,null,null,[2,8,18,32,32,18,5],"[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p³"],
-      [116,"Lv","Livermorium",293,7,16,"post-trans",null,null,null,[2,8,18,32,32,18,6],"[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁴"],
+      [116,"Lv","Livermorium",293,7,16,"post-trans",null,null,null,[2,8,18,32,32,18,6],"[Rn] 5f¹⁴ 6d¹0 7s² 7p⁴"],
       [117,"Ts","Tennessine",294,7,17,"halogen",null,null,null,[2,8,18,32,32,18,7],"[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁵"],
       [118,"Og","Oganesson",294,7,18,"noble",null,null,null,[2,8,18,32,32,18,8],"[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁶"]
     ];
@@ -313,4 +313,222 @@
       canvas.height = window.innerHeight;
     }
     window.addEventListener('resize', resizeCanvas);
-    r
+    resizeCanvas();
+
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.radius = Math.random() * 3 + 1;
+        this.velocity = {
+          x: (Math.random() - 0.5) * 8,
+          y: (Math.random() - 0.5) * 8
+        };
+        this.alpha = 1;
+        this.friction = 0.98;
+        this.gravity = 0.15;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.restore();
+      }
+
+      update() {
+        this.velocity.x *= this.friction;
+        this.velocity.y *= this.friction;
+        this.velocity.y += this.gravity;
+        this.x += this.velocity.x;
+        this.y += this.velocity.y;
+        this.alpha -= 0.02;
+      }
+    }
+
+    function createExplosion(x, y, color) {
+      for (let i = 0; i < 30; i++) {
+        particles.push(new Particle(x, y, color));
+      }
+    }
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        if (p.alpha > 0) {
+          p.update();
+          p.draw();
+        } else {
+          particles.splice(i, 1);
+        }
+      }
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    function initTable() {
+      const container = document.getElementById('periodicTable');
+      if (!container) return;
+      container.innerHTML = '';
+      
+      const grid = Array(10).fill(null).map(() => Array(18).fill(null));
+      
+      elements.forEach(el => {
+        grid[el.p - 1][el.g - 1] = el;
+      });
+
+      for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 18; c++) {
+          const el = grid[r][c];
+          const cell = document.createElement('div');
+          
+          if (el) {
+            cell.className = 'cell';
+            cell.id = `el-${el.z}`;
+            if (el.z === selectedZ) cell.classList.add('selected');
+            
+            cell.innerHTML = `
+              <span class="num">${el.z}</span>
+              <span class="sym">${el.sym}</span>
+              <span class="val" id="val-${el.z}"></span>
+            `;
+            cell.onclick = (e) => {
+              const rect = cell.getBoundingClientRect();
+              const x = rect.left + rect.width / 2;
+              const y = rect.top + rect.height / 2;
+              const color = window.getComputedStyle(cell).backgroundColor;
+              createExplosion(x, y, color);
+              selectElement(el.z);
+            };
+          } else if (r === 5 && c === 2) {
+            cell.className = 'cell cat-lanthanide';
+            cell.innerHTML = '<span style="font-size:0.6rem;font-weight:700">57-71</span>';
+          } else if (r === 6 && c === 2) {
+            cell.className = 'cell cat-actinide';
+            cell.innerHTML = '<span style="font-size:0.6rem;font-weight:700">89-103</span>';
+          } else {
+            cell.style.visibility = 'hidden';
+          }
+          container.appendChild(cell);
+        }
+      }
+      updateStyles();
+      selectElement(1);
+    }
+
+    function setViewMode(mode, btn) {
+      currentMode = mode;
+      document.querySelectorAll('.controls button').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      document.getElementById('legendContainer').style.display = (mode === 'family') ? 'none' : 'flex';
+      updateStyles();
+    }
+
+    function updateStyles() {
+      const vals = elements.map(e => e[currentMode === 'electronegativity' ? 'en' : currentMode === 'radius' ? 'rad' : 'ie']).filter(v => v !== null && v !== undefined);
+      const min = Math.min(...vals);
+      const max = Math.max(...vals);
+
+      if (currentMode !== 'family') {
+        document.getElementById('legendMin').innerText = min;
+        document.getElementById('legendMax').innerText = max;
+      }
+
+      elements.forEach(el => {
+        const cell = document.getElementById(`el-${el.z}`);
+        const valSpan = document.getElementById(`val-${el.z}`);
+        if (!cell) return;
+
+        cell.className = `cell ${el.z === selectedZ ? 'selected' : ''}`;
+        cell.style.background = '';
+        cell.style.color = '';
+
+        if (currentMode === 'family') {
+          cell.classList.add(`cat-${el.cat}`);
+          valSpan.innerText = el.name;
+        } else {
+          const prop = currentMode === 'electronegativity' ? el.en : currentMode === 'radius' ? el.rad : el.ie;
+          if (prop === null || prop === undefined) {
+            cell.style.background = '#1e293b';
+            valSpan.innerText = '—';
+          } else {
+            const ratio = (prop - min) / (max - min);
+            cell.style.background = interpolateColor(ratio);
+            valSpan.innerText = prop;
+          }
+        }
+      });
+    }
+
+    function interpolateColor(ratio) {
+      const r = Math.round(20 + ratio * 220);
+      const g = Math.round(30 + (1 - Math.abs(ratio - 0.5) * 2) * 150);
+      const b = Math.round(180 * (1 - ratio));
+      return `rgb(${r}, ${g}, ${b})`;
+    }
+
+    function selectElement(z) {
+      selectedZ = z;
+      document.querySelectorAll('.cell').forEach(c => c.classList.remove('selected'));
+      const activeCell = document.getElementById(`el-${z}`);
+      if (activeCell) activeCell.classList.add('selected');
+
+      const el = elements.find(e => e.z === z) || elements[0];
+      document.getElementById('dispName').innerText = el.name;
+      document.getElementById('dispSym').innerText = `(${el.sym})`;
+      document.getElementById('dispCat').innerText = el.cat;
+      document.getElementById('dispZ').innerText = el.z;
+      document.getElementById('dispMass').innerText = `${el.mass} u`;
+      document.getElementById('dispEn').innerText = el.en ?? 'N/A';
+      document.getElementById('dispRadius').innerText = el.rad ? `${el.rad} pm` : 'N/A';
+      document.getElementById('dispIe').innerText = el.ie ? `${el.ie} kJ/mol` : 'N/A';
+      document.getElementById('dispPos').innerText = `Period ${el.p > 7 ? (el.p === 8 ? 6 : 7) : el.p}, Group ${el.g}`;
+      document.getElementById('dispConfig').innerText = el.config;
+
+      drawBohr(el.shells);
+    }
+
+    function drawBohr(shells) {
+      const canvas = document.getElementById('bohrCanvas');
+      const ctx = canvas.getContext('2d');
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, 9, 0, Math.PI * 2);
+      ctx.fillStyle = '#ef4444';
+      ctx.fill();
+
+      const maxR = 75;
+      const step = maxR / shells.length;
+
+      shells.forEach((electrons, sIdx) => {
+        const r = 18 + (sIdx + 1) * step;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        for (let i = 0; i < electrons; i++) {
+          const angle = (i / electrons) * Math.PI * 2;
+          const ex = cx + r * Math.cos(angle);
+          const ey = cy + r * Math.sin(angle);
+          ctx.beginPath();
+          ctx.arc(ex, ey, 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#38bdf8';
+          ctx.fill();
+        }
+      });
+    }
+
+    window.onload = initTable;
+  </script>
+</body>
+</html>
