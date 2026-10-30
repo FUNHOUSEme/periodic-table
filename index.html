@@ -3,7 +3,31 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Interactive Periodic Table Explorer</title>
+  
+  <!-- Primary Meta Tags -->
+  <title>Interactive Periodic Table Explorer | 118 Elements & Chiptune Audio</title>
+  <meta name="title" content="Interactive Periodic Table Explorer | 118 Elements & Chiptune Audio">
+  <meta name="description" content="Explore all 118 chemical elements with real-time property heatmaps, orbital Bohr models, quantum electron shells, and retro arcade chiptune blast effects.">
+  <meta name="keywords" content="periodic table, chemistry, interactive periodic table, chemical elements, electron configuration, Bohr model, science tools, chiptune periodic table">
+  <meta name="author" content="FUNHOUSEme">
+  <meta name="theme-color" content="#0b0f19">
+
+  <!-- Open Graph / Facebook / LinkedIn / Discord -->
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://funhouseme.github.io/periodic-table/">
+  <meta property="og:title" content="Interactive Periodic Table Explorer (All 118 Elements)">
+  <meta property="og:description" content="Interactive chemical element explorer featuring live heatmaps for electronegativity, atomic radius, ionization energy, real-time Bohr diagrams, and retro 8-bit sound effects.">
+  <meta property="og:site_name" content="Periodic Table Explorer">
+
+  <!-- Twitter / X -->
+  <meta property="twitter:card" content="summary_large_image">
+  <meta property="twitter:url" content="https://funhouseme.github.io/periodic-table/">
+  <meta property="twitter:title" content="Interactive Periodic Table Explorer (All 118 Elements)">
+  <meta property="twitter:description" content="Interactive chemical element explorer featuring live heatmaps for electronegativity, atomic radius, ionization energy, real-time Bohr diagrams, and retro 8-bit sound effects.">
+
+  <!-- Crisp Vector Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23131b2e' stroke='%2338bdf8' stroke-width='2'/%3E%3Ctext x='50%25' y='55%25' font-family='sans-serif' font-weight='bold' font-size='14' fill='%2338bdf8' dominant-baseline='middle' text-anchor='middle'%3EPt%3C/text%3E%3C/svg%3E">
+
   <style>
     :root {
       --bg: #0b0f19;
@@ -341,17 +365,13 @@
       if (!ctx) return;
 
       const now = ctx.currentTime;
-      // Z-scale: 0.0 for Hydrogen (Z=1), 1.0 for Oganesson (Z=118)
       const zNorm = Math.min(1, Math.max(0, (z - 1) / 117));
-
-      // Heavy elements blast longer; light elements are snappy
       const duration = 0.4 + (zNorm * 0.35);
 
       const masterGain = ctx.createGain();
       masterGain.gain.setValueAtTime(1.6, now);
       masterGain.connect(ctx.destination);
 
-      // 1. Hardware-Accurate LFSR Pseudo-Random Noise (NES / Space Invaders style)
       const sampleRate = ctx.sampleRate;
       const totalSamples = Math.floor(sampleRate * duration);
       const buffer = ctx.createBuffer(1, totalSamples, sampleRate);
@@ -361,7 +381,6 @@
       let sampleVal = 1;
       let clockTimer = 0;
 
-      // Clock speed scales with atomic weight (higher divider = lower pitched gravel)
       const baseClock = Math.floor(2 + zNorm * 6);
       const maxClock = Math.floor(40 + zNorm * 80);
 
@@ -386,7 +405,7 @@
 
       const hpFilter = ctx.createBiquadFilter();
       hpFilter.type = 'highpass';
-      hpFilter.frequency.setValueAtTime(180 - (zNorm * 100), now); // Heavy elements retain more bottom end
+      hpFilter.frequency.setValueAtTime(180 - (zNorm * 100), now);
 
       const lpFilter = ctx.createBiquadFilter();
       lpFilter.type = 'lowpass';
@@ -399,12 +418,11 @@
       lpFilter.connect(masterGain);
       noiseSource.start(now);
 
-      // 2. High-Pitched 8-Bit Laser Zap Click (Frequency inversely scaled by Z)
       const zapOsc = ctx.createOscillator();
       const zapGain = ctx.createGain();
       zapOsc.type = 'sawtooth';
 
-      const zapStartFreq = 2200 - (zNorm * 1400); // Light: 2200Hz zap, Heavy: 800Hz zap
+      const zapStartFreq = 2200 - (zNorm * 1400);
       const zapEndFreq = 180 - (zNorm * 100);
 
       zapOsc.frequency.setValueAtTime(zapStartFreq, now);
@@ -441,7 +459,7 @@
         const speed = Math.random() * 11 + 3.5;
         this.vx = Math.cos(angle) * speed;
         this.vy = Math.sin(angle) * speed;
-        this.size = Math.floor(Math.random() * 4) + 3; // 3px to 6px square blocks
+        this.size = Math.floor(Math.random() * 4) + 3;
         this.rotation = Math.random() * Math.PI;
         this.vRot = (Math.random() - 0.5) * 0.25;
         this.alpha = 1;
@@ -454,7 +472,6 @@
         ctx.translate(this.x, this.y);
         ctx.rotate(this.rotation);
         ctx.fillStyle = this.color;
-        // Sharp, un-blurred pixel box
         ctx.fillRect(-this.size / 2, -this.size / 2, this.size, this.size);
         ctx.restore();
       }
@@ -483,7 +500,6 @@
         ctx.globalAlpha = this.alpha;
         ctx.strokeStyle = this.color;
         ctx.lineWidth = 3;
-        // Octagonal arcade shockwave contour
         ctx.beginPath();
         const steps = 8;
         for (let i = 0; i <= steps; i++) {
