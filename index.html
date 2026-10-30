@@ -255,7 +255,7 @@
       [77,"Ir","Iridium",192.22,6,9,"transition",2.2,180,880,[2,8,18,32,15,2],"[Xe] 4f¹⁴ 5d⁷ 6s²"],
       [78,"Pt","Platinum",195.08,6,10,"transition",2.28,177,870,[2,8,18,32,17,1],"[Xe] 4f¹⁴ 5d⁹ 6s¹"],
       [79,"Au","Gold",196.97,6,11,"transition",2.54,174,890,[2,8,18,32,18,1],"[Xe] 4f¹⁴ 5d¹⁰ 6s¹"],
-      [80,"Hg","Mercury",200.59,6,12,"transition",2,171,1007,[2,8,18,32,18,2],"[Xe] 4f¹⁴ 5d¹⁰ 6s²"],
+      [80,"Hg","Mercury",200.59,6,12,"transition",2,171,1007,[2,8,18,32,18,2],"[Xe] 4f¹⁴ 5d¹0 6s²"],
       [81,"Tl","Thallium",204.38,6,13,"post-trans",1.62,156,589,[2,8,18,32,18,3],"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p¹"],
       [82,"Pb","Lead",207.2,6,14,"post-trans",2.33,154,716,[2,8,18,32,18,4],"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p²"],
       [83,"Bi","Bismuth",208.98,6,15,"post-trans",2.02,143,703,[2,8,18,32,18,5],"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p³"],
@@ -304,9 +304,11 @@
     let currentMode = 'family';
     let selectedZ = 1;
 
+    // High-energy explosion canvas setup
     const canvas = document.getElementById('particleCanvas');
     const ctx = canvas.getContext('2d');
     let particles = [];
+    let shockwaves = [];
 
     function resizeCanvas() {
       canvas.width = window.innerWidth;
@@ -320,14 +322,13 @@
         this.x = x;
         this.y = y;
         this.color = color;
-        this.radius = Math.random() * 3 + 1;
-        this.velocity = {
-          x: (Math.random() - 0.5) * 8,
-          y: (Math.random() - 0.5) * 8
-        };
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 12 + 4; // High blast speed
+        this.vx = Math.cos(angle) * speed;
+        this.vy = Math.sin(angle) * speed;
+        this.radius = Math.random() * 2.5 + 1.5;
         this.alpha = 1;
-        this.friction = 0.98;
-        this.gravity = 0.15;
+        this.decay = Math.random() * 0.035 + 0.03; // Fast dissipation
       }
 
       draw() {
@@ -336,28 +337,70 @@
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 8;
         ctx.fill();
         ctx.restore();
       }
 
       update() {
-        this.velocity.x *= this.friction;
-        this.velocity.y *= this.friction;
-        this.velocity.y += this.gravity;
-        this.x += this.velocity.x;
-        this.y += this.velocity.y;
-        this.alpha -= 0.02;
+        this.vx *= 0.92; // Friction deceleration
+        this.vy *= 0.92;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= this.decay;
+      }
+    }
+
+    class Shockwave {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.color = color;
+        this.radius = 8;
+        this.maxRadius = 55;
+        this.alpha = 0.9;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = 3;
+        ctx.shadowColor = this.color;
+        ctx.shadowBlur = 10;
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      update() {
+        this.radius += 3.5;
+        this.alpha -= 0.06;
       }
     }
 
     function createExplosion(x, y, color) {
-      for (let i = 0; i < 30; i++) {
+      shockwaves.push(new Shockwave(x, y, color));
+      for (let i = 0; i < 40; i++) {
         particles.push(new Particle(x, y, color));
       }
     }
 
     function animateParticles() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = shockwaves.length - 1; i >= 0; i--) {
+        const sw = shockwaves[i];
+        if (sw.alpha > 0) {
+          sw.update();
+          sw.draw();
+        } else {
+          shockwaves.splice(i, 1);
+        }
+      }
+
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i];
         if (p.alpha > 0) {
@@ -367,6 +410,7 @@
           particles.splice(i, 1);
         }
       }
+
       requestAnimationFrame(animateParticles);
     }
     animateParticles();
