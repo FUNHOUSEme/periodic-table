@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -255,7 +255,7 @@
       [77,"Ir","Iridium",192.22,6,9,"transition",2.2,180,880,[2,8,18,32,15,2],"[Xe] 4f¹⁴ 5d⁷ 6s²"],
       [78,"Pt","Platinum",195.08,6,10,"transition",2.28,177,870,[2,8,18,32,17,1],"[Xe] 4f¹⁴ 5d⁹ 6s¹"],
       [79,"Au","Gold",196.97,6,11,"transition",2.54,174,890,[2,8,18,32,18,1],"[Xe] 4f¹⁴ 5d¹⁰ 6s¹"],
-      [80,"Hg","Mercury",200.59,6,12,"transition",2,171,1007,[2,8,18,32,18,2],"[Xe] 4f¹⁴ 5d¹⁰ 6s²"],
+      [80,"Hg","Mercury",200.59,6,12,"transition",2,171,1007,[2,8,18,32,18,2],"[Xe] 4f¹⁴ 5d¹0 6s²"],
       [81,"Tl","Thallium",204.38,6,13,"post-trans",1.62,156,589,[2,8,18,32,18,3],"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p¹"],
       [82,"Pb","Lead",207.2,6,14,"post-trans",2.33,154,716,[2,8,18,32,18,4],"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p²"],
       [83,"Bi","Bismuth",208.98,6,15,"post-trans",2.02,143,703,[2,8,18,32,18,5],"[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p³"],
@@ -304,59 +304,81 @@
     let currentMode = 'family';
     let selectedZ = 1;
 
-    // Web Audio API Synthesizer (Loud blast + bass sub-drop)
+    // Bulletproof Audio Unlock & Web Audio Synthesizer
     let audioCtx = null;
 
-    function playExplosionSound() {
+    function getAudioContext() {
       if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const AudioClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioClass) {
+          audioCtx = new AudioClass();
+        }
       }
-      if (audioCtx.state === 'suspended') {
+      if (audioCtx && audioCtx.state === 'suspended') {
         audioCtx.resume();
       }
+      return audioCtx;
+    }
 
-      const now = audioCtx.currentTime;
+    // Unlocks browser audio policy on the very first screen click/touch
+    ['click', 'touchstart', 'keydown'].forEach(evt => {
+      window.addEventListener(evt, () => {
+        getAudioContext();
+      }, { once: true });
+    });
 
-      // 1. White Noise Burst (Crack / Blast Wave)
-      const bufferSize = audioCtx.sampleRate * 0.45;
-      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        output[i] = Math.random() * 2 - 1;
+    function playExplosionSound() {
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+
+      // Master gain node for loud playback
+      const masterGain = ctx.createGain();
+      masterGain.gain.setValueAtTime(1.5, now);
+      masterGain.connect(ctx.destination);
+
+      // 1. Harsh White Noise Crack / Shockwave
+      const bufferLength = Math.floor(ctx.sampleRate * 0.4);
+      const buffer = ctx.createBuffer(1, bufferLength, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferLength; i++) {
+        data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.08));
       }
 
-      const whiteNoise = audioCtx.createBufferSource();
-      whiteNoise.buffer = noiseBuffer;
+      const noiseSource = ctx.createBufferSource();
+      noiseSource.buffer = buffer;
 
-      const filter = audioCtx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(800, now);
-      filter.frequency.exponentialRampToValueAtTime(40, now + 0.45);
+      const noiseFilter = ctx.createBiquadFilter();
+      noiseFilter.type = 'lowpass';
+      noiseFilter.frequency.setValueAtTime(1200, now);
+      noiseFilter.frequency.exponentialRampToValueAtTime(80, now + 0.35);
 
-      const noiseGain = audioCtx.createGain();
-      noiseGain.gain.setValueAtTime(1.2, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(1.0, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.38);
 
-      whiteNoise.connect(filter);
-      filter.connect(noiseGain);
-      noiseGain.connect(audioCtx.destination);
-      whiteNoise.start(now);
+      noiseSource.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(masterGain);
+      noiseSource.start(now);
 
-      // 2. Heavy Sub-Bass Boom (Shockwave punch)
-      const osc = audioCtx.createOscillator();
-      const oscGain = audioCtx.createGain();
+      // 2. Heavy Sub-Bass Boom
+      const subOsc = ctx.createOscillator();
+      const subGain = ctx.createGain();
 
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(160, now);
-      osc.frequency.exponentialRampToValueAtTime(25, now + 0.5);
+      subOsc.type = 'triangle';
+      subOsc.frequency.setValueAtTime(180, now);
+      subOsc.frequency.exponentialRampToValueAtTime(30, now + 0.45);
 
-      oscGain.gain.setValueAtTime(1.0, now);
-      oscGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      subGain.gain.setValueAtTime(1.2, now);
+      subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.48);
 
-      osc.connect(oscGain);
-      oscGain.connect(audioCtx.destination);
-      osc.start(now);
-      osc.stop(now + 0.52);
+      subOsc.connect(subGain);
+      subGain.connect(masterGain);
+
+      subOsc.start(now);
+      subOsc.stop(now + 0.5);
     }
 
     // High-energy explosion canvas setup
